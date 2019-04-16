@@ -689,4 +689,62 @@ class ClassifierRandomForest(Classifier):
             a = construit_AD_aleatoire(sample, self.epsilon, self.nbAtt)
             self.ensemble.append(a)
 
+class ClassifierPerceptron_regression(Classifier):
+        """ Perceptron de Rosenblatt
+        """
+        def __init__(self,input_dimension,learning_rate):
+            """ Argument:
+                    - intput_dimension (int) : dimension d'entrée des exemples
+                    - learning_rate :
+                Hypothèse : input_dimension > 0
+            """
+            ##TODO
+            self.input_dimension = input_dimension
+            self.learning_rate = learning_rate
+            #w i j  == poids entre le noeud d'entréej et neurone j 
+            self.w = (2* np.random.rand(self.input_dimension))-1
+
+        def predict(self,x):
+            """ rend w * x
+            """
+            ##TODO
+            return np.dot(self.w, x)
+
+
+        def train(self,labeledSet):
+            """ Permet d'entrainer le modele sur l'ensemble donné
+            """
+            ##TODO
+            self.out = 0
+            self.trainingSet = labeledSet
+            r = list(range(self.trainingSet.size()))
+            np.random.shuffle(r)
+            for i in r:
+                out = self.predict(self.trainingSet.getX(i))
+                if out !=  self.trainingSet.getY(i):
+                    self.w = self.w + self.learning_rate *self.trainingSet.getY(i) *self.trainingSet.getX(i)
+        def loss(self, Set):
+            s = 0
+            for i in range(Set.size()):
+                s+= abs(Set.getY(i)- np.dot(self.w, Set.getX(i))) 
+                     
+            return s 
+
+def test_perceptron_regression(train, test, epsilon, taille, nbTrain):                 
+    a=[]
+    #accuracy =[]
+    loss= []
+    p1 = ClassifierPerceptron_regression(taille, epsilon)
+
+
+    for i in range(nbTrain):
+        p1.train(train)
+        a.append(i)
+        #accuracy.append(p1.accuracy(train)*100)
+
+        loss.append(p1.loss(test))
+    return a, loss
+
+
+
 
