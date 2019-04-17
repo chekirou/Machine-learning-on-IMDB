@@ -87,7 +87,7 @@ class ClassifierKNN(Classifier):
 
     #TODO: A Compléter
  
-    def __init__(self, input_dimension, k):
+    def __init__(self, input_dimension,output_dimension, k):
         """ Constructeur de Classifier
             Argument:
                 - intput_dimension (int) : dimension d'entrée des exemples
@@ -95,6 +95,7 @@ class ClassifierKNN(Classifier):
             Hypothèse : input_dimension > 0
         """
         self.input_dimension = input_dimension
+        self.output_dimension = output_dimension
         self.k= k
         
     def predict(self, x):
@@ -108,15 +109,34 @@ class ClassifierKNN(Classifier):
             
         
         tab = np.argsort(tab)
+
         s = 0
-        for i in range(self.k):
-            s+= self.trainingSet.getY(tab[i])
-        return(1 if s>=0 else -1)
+        r = [0 for i in range(self.output_dimension)]
+        for i in range(len(r)):
+        	zero, un = 0,0
+        	for j in range(self.k):
+        		if self.trainingSet.getY(tab[j])[i] == 1:
+        			un += 1
+        		else:
+        			zero+=1
+        	r[i] = 0 if zero > un else 1
+        return r
 
     def train(self, labeledSet):
         """ Permet d'entrainer le modele sur l'ensemble donné
         """        
         self.trainingSet = labeledSet
+
+    def accuracy(self, Set):
+        somme = 0
+        for j in range(Set.size()):
+            baelor = 1
+            for i in range(len(Set.getY(j))):
+                if Set.getY(j)[i] != self.predict(Set.getX(j))[i]:
+                    baelor = 0
+            somme += 1 if (baelor == 0) else 0
+        return (float(somme)/Set.size() )
+
 
 # ---------------------------
 class ClassifierPerceptronRandom(Classifier):
@@ -745,6 +765,287 @@ def test_perceptron_regression(train, test, epsilon, taille, nbTrain):
         loss.append(p1.loss(test))
     return a, loss
 
+class ClassifierPerceptron_batch(Classifier):
+    """ Perceptron de Rosenblatt
+    """
+    def __init__(self,input_dimension,learning_rate):
+        """ Argument:
+                - intput_dimension (int) : dimension d'entrée des exemples
+                - learning_rate :
+            Hypothèse : input_dimension > 0
+        """
+        ##TODO
+        self.input_dimension = input_dimension
+        self.learning_rate = learning_rate
+        #w i j  == poids entre le noeud d'entréej et neurone j 
+        
+        self.w = (2* np.random.rand(self.input_dimension))-1
+        
+    def predict(self,x):
+        """ rend la prediction sur x (-1 ou +1)
+        """
+        ##TODO
+        return np.dot(self.w, x)
 
+    
+    def train(self,labeledSet):
+        """ Permet d'entrainer le modele sur l'ensemble donné
+        """
+        ##TODO
+        self.gradient = 0
+        self.trainingSet = labeledSet
+        for i in range(self.trainingSet.size()):
+            self.gradient += self.learning_rate * (self.trainingSet.getY(i) -np.dot(self.w, self.trainingSet.getX(i)))*self.trainingSet.getX(i)
+        self.w = self.w + self.gradient
+    def loss(self, Set):
+        s = 0
+        for i in range(Set.size()):
+            s+= (Set.getY(i)- np.dot(self.w, Set.getX(i)))**2     
+        return s 
 
+class KernelBias:
+    def transform(self,x):
+        y=np.asarray(x+[1])
+        return y
 
+class ClassifierPerceptronKernel(Classifier):
+    def __init__(self,dimension_kernel,learning_rate,kernel):
+        """ Argument:
+                - intput_dimension (int) : dimension d'entrée des exemples
+                - learning_rate :
+            Hypothèse : input_dimension > 0
+        """
+        
+        ##TODO
+        
+        self.input_dimension = dimension_kernel
+        self.learning_rate = learning_rate
+        self.w = (2* np.random.rand(dimension_kernel))-1
+        self.k = kernel
+        
+    def predict(self,x):
+        """ rend la prediction sur x (-1 ou +1)
+        """
+        ##TODO
+        return np.dot(self.w, self.k.transform(x))
+
+    def train(self,labeledSet):
+        self.out = 0
+        self.trainingSet = labeledSet
+        for i in range(self.trainingSet.size()):
+            out = self.predict(self.trainingSet.getX(i))
+            if out != self.trainingSet.getY(i):
+                self.w = self.w + self.learning_rate *self.trainingSet.getY(i) *self.k.transform(self.trainingSet.getX(i))
+    
+    def loss(self, Set):
+        s = 0
+        for i in range(Set.size()):
+            s+= math.pow(Set.getY(i)- np.dot(self.w, self.k.transform(Set.getX(i))), 2)     
+        return s
+
+class ClassifierBatchKernel(Classifier):
+    def __init__(self,dimension_kernel,learning_rate,kernel):
+        """ Argument:
+                - intput_dimension (int) : dimension d'entrée des exemples
+                - learning_rate :
+            Hypothèse : input_dimension > 0
+        """
+        
+        ##TODO
+        
+        self.input_dimension = dimension_kernel
+        self.learning_rate = learning_rate
+        self.w = (2* np.random.rand(dimension_kernel))-1
+        self.k = kernel
+        
+    def predict(self,x):
+        """ rend la prediction sur x (-1 ou +1)
+        """
+        ##TODO
+        return np.dot(self.w, self.k.transform(x))
+
+    def train(self,labeledSet):
+        self.gradient = 0
+        self.trainingSet = labeledSet
+        r = list(range(self.trainingSet.size()))
+        np.random.shuffle(r)
+        for i in r:
+            self.gradient +=  (self.trainingSet.getY(i) -np.dot(self.w, self.k.transform(self.trainingSet.getX(i))))*self.k.transform(self.trainingSet.getX(i))
+        self.w = self.learning_rate * self.gradient
+    def loss(self, Set):
+        s = 0
+        for i in range(Set.size()):
+            #print(s)
+            s+= (Set.getY(i)- np.dot(self.w, self.k.transform(Set.getX(i))))**2  
+            if s == float("inf"):
+            	print(i)   
+        return s
+
+class ClassifierPerceptron_stochastique(Classifier):
+    """ Perceptron de Rosenblatt
+    """
+    def __init__(self,input_dimension,learning_rate):
+        """ Argument:
+                - intput_dimension (int) : dimension d'entrée des exemples
+                - learning_rate :
+            Hypothèse : input_dimension > 0
+        """
+        ##TODO
+        self.input_dimension = input_dimension
+        self.learning_rate = learning_rate
+        #w i j  == poids entre le noeud d'entréej et neurone j 
+        self.w = (2* np.random.rand(self.input_dimension))-1
+        
+    def predict(self,x):
+        """ rend la prediction sur x (-1 ou +1)
+        """
+        ##TODO
+        return 1 if np.dot(self.w, x)>0 else -1
+
+    
+    def train(self,labeledSet):
+        """ Permet d'entrainer le modele sur l'ensemble donné
+        """
+        ##TODO
+        self.out = 0
+        self.trainingSet = labeledSet
+        r = list(range(self.trainingSet.size()))
+        np.random.shuffle(r)
+        for i in r:
+            out = self.predict(self.trainingSet.getX(i))
+            self.w = self.w + 0.5*self.learning_rate *(self.trainingSet.getY(i) -out)* self.trainingSet.getX(i)
+        
+    def loss(self, Set):
+        s = 0
+        for i in range(Set.size()):
+            s+= (Set.getY(i)- np.dot(self.w, Set.getX(i)))**2     
+        return s  
+            
+            
+        
+class ClassifierStochastiqueKernel(Classifier):
+    def __init__(self,dimension_kernel,learning_rate,kernel):
+        """ Argument:
+                - intput_dimension (int) : dimension d'entrée des exemples
+                - learning_rate :
+            Hypothèse : input_dimension > 0
+        """
+        
+        ##TODO
+        
+        self.input_dimension = dimension_kernel
+        self.learning_rate = learning_rate
+        self.w = (2* np.random.rand(dimension_kernel))-1
+        self.k = kernel
+        
+    def predict(self,x):
+        """ rend la prediction sur x (-1 ou +1)
+        """
+        ##TODO
+        return 1 if np.dot(self.w, self.k.transform(x))>0 else -1
+
+    
+    def train(self,labeledSet):
+        ##TODO
+        self.out = 0
+        self.trainingSet = labeledSet
+        r = list(range(self.trainingSet.size()))
+        np.random.shuffle(r)
+        for i in r:
+            out = self.predict(self.trainingSet.getX(i))
+            self.w = self.w + 0.5*self.learning_rate *(self.trainingSet.getY(i) -out)* self.k.transform(self.trainingSet.getX(i))
+        
+    def loss(self, Set):
+        s = 0
+        for i in range(Set.size()):
+            s+=math.pow(Set.getY(i)- np.dot(self.w, self.k.transform(Set.getX(i))), 2)     
+        return s 
+
+# neural network class definition
+class neuralNetwork(Classifier):
+    
+    
+    # initialise the neural network
+    def __init__(self, inputnodes, hiddennodes, outputnodes, learningrate):
+        # set number of nodes in each input, hidden, output layer
+        self.inodes = inputnodes
+        self.hnodes = hiddennodes
+        self.onodes = outputnodes
+        
+        # link weight matrices, wih and who
+        # weights inside the arrays are w_i_j, where link is from node i to node j in the next layer
+        # w11 w21
+        # w12 w22 etc 
+        self.wih = np.random.normal(0.0, pow(self.inodes, -0.5), (self.hnodes, self.inodes))
+        self.who = np.random.normal(0.0, pow(self.hnodes, -0.5), (self.onodes, self.hnodes))
+
+        # learning rate
+        self.lr = learningrate
+        
+        # activation function is the sigmoid function
+        self.activation_function = lambda x: scipy.special.expit(x)
+        
+        pass
+
+    
+    # train the neural network
+    def train(self, Set):
+        # convert inputs list to 2d array
+        for i in range(Set.size()):
+        	inputs_list = Set.getX(i)
+        	targets_list = Set.getY(i)
+	        inputs = np.array(inputs_list, ndmin=2).T
+	        targets = np.array(targets_list, ndmin=2).T
+	        
+	        # calculate signals into hidden layer
+	        hidden_inputs = np.dot(self.wih, inputs)
+	        # calculate the signals emerging from hidden layer
+	        hidden_outputs = self.activation_function(hidden_inputs)
+	        
+	        # calculate signals into final output layer
+	        final_inputs = np.dot(self.who, hidden_outputs)
+	        # calculate the signals emerging from final output layer
+	        final_outputs = self.activation_function(final_inputs)
+	        
+	        # output layer error is the (target - actual)
+	        output_errors = targets - final_outputs
+	        # hidden layer error is the output_errors, split by weights, recombined at hidden nodes
+	        hidden_errors = np.dot(self.who.T, output_errors) 
+	        
+	        # update the weights for the links between the hidden and output layers
+	        self.who += self.lr * np.dot((output_errors * final_outputs * (1.0 - final_outputs)), np.transpose(hidden_outputs))
+	        
+	        # update the weights for the links between the input and hidden layers
+	        self.wih += self.lr * np.dot((hidden_errors * hidden_outputs * (1.0 - hidden_outputs)), np.transpose(inputs))
+	        
+        pass
+
+    
+    # query the neural network
+    def predict(self, inputs_list):
+        # convert inputs list to 2d array
+        inputs = np.array(inputs_list, ndmin=2).T
+        
+        # calculate signals into hidden layer
+        hidden_inputs = np.dot(self.wih, inputs)
+        # calculate the signals emerging from hidden layer
+        hidden_outputs = self.activation_function(hidden_inputs)
+        
+        # calculate signals into final output layer
+        final_inputs = np.dot(self.who, hidden_outputs)
+        # calculate the signals emerging from final output layer
+        final_outputs = self.activation_function(final_inputs)
+        
+        return final_outputs
+    def accuracy(self, Set):
+    	s = 0
+    	for i in range(Set.size()):
+    		p = self.predict(Set.getX(i))
+    		for j in range(len(p)):
+    			a = 1 if p[j] > 0.5 else 0
+    			k = true
+    			if a != Set.getY(i)[j]:
+    				k = false
+    				break;
+    		s+= 1 if  k else 0
+    	return s / Set.size()

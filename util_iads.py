@@ -15,7 +15,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # importation de LabeledSet
-from . import LabeledSet 
+from . import LabeledSet as ls
 
 def plot2DSet(set):
     """ LabeledSet -> NoneType
@@ -58,11 +58,6 @@ def createGaussianDataset(positive_center, positive_sigma, negative_center, nega
     """
     #TODO: A Compléter
     
-    dataset = LabeledSet.LabeledSet(nb_points) 
-    positives = np.random.multivariate_normal(positive_center, positive_sigma, size=nb_points)
-    negatives = np.random.multivariate_normal(negative_center, negative_sigma, size=nb_points)
-    for i in range(nb_points):
-        dataset.addExample(positives[i], 1)
-        dataset.addExample(negatives[i], -1)
-    return dataset
+    raise NotImplementedError("Please Implement this method")
+    
     
